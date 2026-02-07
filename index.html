@@ -606,8 +606,13 @@
       // Generate QR code
       const qrContainer = document.getElementById('cardQr');
       qrContainer.innerHTML = '';
-      QRCode.toCanvas(portfolioUrl, { width: 42, margin: 0 }, (err, canvas) => {
-        if (!err) qrContainer.appendChild(canvas);
+      const qrCanvas = document.createElement('canvas');
+      QRCode.toCanvas(qrCanvas, portfolioUrl, { width: 44, margin: 0, color: { dark: '#000', light: '#fff' } }, (err) => {
+        if (!err) {
+          qrContainer.appendChild(qrCanvas);
+        } else {
+          console.error('QR Error:', err);
+        }
       });
     }
     
