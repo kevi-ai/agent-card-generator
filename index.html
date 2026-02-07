@@ -339,6 +339,33 @@
     }
     .btn-download:hover { border-color: var(--cyan); }
     
+    .share-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .share-title {
+      font-size: 12px;
+      color: var(--dim);
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .share-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-share {
+      flex: 1;
+      padding: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .btn-share:hover { border-color: var(--cyan); }
+    
     footer {
       text-align: center;
       margin-top: 40px;
@@ -465,8 +492,17 @@
         </div>
         
         <div class="download-btns">
-          <button class="btn-download" onclick="downloadCard('png')">📥 Download PNG</button>
-          <button class="btn-download" onclick="downloadCard('jpg')">📥 Download JPG</button>
+          <button class="btn-download" onclick="downloadCard('png')">📥 PNG</button>
+          <button class="btn-download" onclick="downloadCard('jpg')">📥 JPG</button>
+          <button class="btn-download" onclick="downloadSVG()">📥 SVG</button>
+        </div>
+        
+        <div class="share-section">
+          <div class="share-title">Share on Social</div>
+          <div class="share-btns">
+            <button class="btn-share" onclick="shareTwitter()">𝕏 Twitter</button>
+            <button class="btn-share" onclick="copyLink()">🔗 Copy Link</button>
+          </div>
         </div>
       </div>
     </div>
@@ -631,6 +667,100 @@
     document.getElementById('lookupWallet').addEventListener('keypress', e => {
       if (e.key === 'Enter') lookupWallet();
     });
+    
+    // Download as SVG
+    function downloadSVG() {
+      const name = document.getElementById('cardName').textContent;
+      const type = document.getElementById('cardType').textContent;
+      const wallet = document.getElementById('cardWallet').textContent;
+      const earned = document.getElementById('cardEarned').textContent;
+      const bounties = document.getElementById('cardBounties').textContent;
+      const rep = document.getElementById('cardRep').textContent;
+      const skills = Array.from(document.querySelectorAll('#cardSkills .skill-tag')).map(s => s.textContent);
+      
+      const themeColors = {
+        cyber: { bg1: '#0a0a1a', bg2: '#1a1a3a', accent: '#00f0ff', glow: '#00f0ff' },
+        neon: { bg1: '#1a0a1a', bg2: '#2a1a2a', accent: '#ff4088', glow: '#ff4088' },
+        matrix: { bg1: '#0a1a0a', bg2: '#0a2a1a', accent: '#00ff88', glow: '#00ff88' },
+        dark: { bg1: '#111111', bg2: '#222222', accent: '#ffffff', glow: '#666666' },
+        ocean: { bg1: '#0a1a2a', bg2: '#0a2a3a', accent: '#00ccff', glow: '#0077ff' }
+      };
+      const colors = themeColors[currentTheme];
+      
+      const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="360" height="200" viewBox="0 0 360 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:${colors.bg1}"/>
+      <stop offset="100%" style="stop-color:${colors.bg2}"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" result="blur"/>
+      <feFlood flood-color="${colors.glow}" flood-opacity="0.3"/>
+      <feComposite in2="blur" operator="in"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  
+  <rect width="360" height="200" rx="16" fill="url(#bgGrad)" stroke="${colors.accent}" stroke-opacity="0.2"/>
+  <circle cx="310" cy="0" r="100" fill="${colors.glow}" opacity="0.15" filter="url(#glow)"/>
+  
+  <text x="20" y="40" font-family="system-ui, sans-serif" font-size="20" font-weight="700" fill="#ffffff">${name}</text>
+  <rect x="280" y="22" width="60" height="20" rx="4" fill="${colors.accent}" fill-opacity="0.2"/>
+  <text x="310" y="36" font-family="system-ui, sans-serif" font-size="9" fill="${colors.accent}" text-anchor="middle">${type}</text>
+  
+  <text x="20" y="60" font-family="monospace" font-size="11" fill="#888888">${wallet}</text>
+  
+  <text x="20" y="95" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="${colors.accent}">${earned}</text>
+  <text x="20" y="108" font-family="system-ui, sans-serif" font-size="9" fill="#666666">EARNED</text>
+  
+  <text x="90" y="95" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="${colors.accent}">${bounties}</text>
+  <text x="90" y="108" font-family="system-ui, sans-serif" font-size="9" fill="#666666">BOUNTIES</text>
+  
+  <text x="160" y="95" font-family="system-ui, sans-serif" font-size="18" font-weight="700" fill="${colors.accent}">${rep}</text>
+  <text x="160" y="108" font-family="system-ui, sans-serif" font-size="9" fill="#666666">REP SCORE</text>
+  
+  ${skills.map((s, i) => `<rect x="${20 + i * 60}" y="125" width="55" height="18" rx="4" fill="rgba(255,255,255,0.1)"/><text x="${47 + i * 60}" y="137" font-family="system-ui, sans-serif" font-size="9" fill="#aaaaaa" text-anchor="middle">${s}</text>`).join('\n  ')}
+  
+  <rect x="290" y="130" width="50" height="50" rx="6" fill="#ffffff"/>
+  <text x="315" y="160" font-family="system-ui, sans-serif" font-size="8" fill="#000000" text-anchor="middle">QR</text>
+  
+  <text x="20" y="188" font-family="system-ui, sans-serif" font-size="8" fill="#444444">bounty.owockibot.xyz</text>
+</svg>`;
+      
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const link = document.createElement('a');
+      link.download = 'agent-card.svg';
+      link.href = URL.createObjectURL(blob);
+      link.click();
+    }
+    
+    // Share to Twitter
+    function shareTwitter() {
+      const name = document.getElementById('agentName').value;
+      const earned = document.getElementById('earned').value;
+      const bounties = document.getElementById('bounties').value;
+      const text = `🤖 ${name} | AI Bounty Hunter\n\n💰 $${earned} earned\n🎯 ${bounties} bounties completed\n\nGenerate your card: https://agent-cards.surge.sh\n\n#AIAgents #BountyHunter`;
+      const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+    
+    // Copy shareable link
+    function copyLink() {
+      const wallet = document.getElementById('wallet').value;
+      const link = `https://agent-cards.surge.sh?wallet=${wallet}`;
+      navigator.clipboard.writeText(link).then(() => {
+        alert('Link copied to clipboard!');
+      });
+    }
+    
+    // Check for wallet in URL params (for sharing)
+    const urlParams = new URLSearchParams(window.location.search);
+    const walletParam = urlParams.get('wallet');
+    if (walletParam) {
+      document.getElementById('lookupWallet').value = walletParam;
+      lookupWallet();
+    }
     
     // Initial generate
     generateCard();
