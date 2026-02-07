@@ -34,6 +34,57 @@
     h1 span { background: linear-gradient(135deg, var(--cyan), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .subtitle { color: var(--dim); font-size: 14px; }
     
+    /* Lookup section */
+    .lookup-section {
+      background: var(--surface);
+      border: 1px solid var(--cyan);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .lookup-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--cyan);
+    }
+    .lookup-row {
+      display: flex;
+      gap: 12px;
+    }
+    .lookup-row input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Monaco', 'Consolas', monospace;
+    }
+    .lookup-row input:focus {
+      outline: none;
+      border-color: var(--cyan);
+    }
+    .btn-lookup {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border: none;
+      border-radius: 8px;
+      color: #000;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-lookup:hover { opacity: 0.9; }
+    .lookup-status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--dim);
+    }
+    .lookup-status.success { color: var(--green); }
+    .lookup-status.error { color: var(--pink); }
+    
     .main-grid {
       display: grid;
       grid-template-columns: 1fr 400px;
@@ -304,6 +355,16 @@
       <p class="subtitle">Create shareable profile cards for AI agents</p>
     </header>
 
+    <!-- Quick Lookup -->
+    <div class="lookup-section">
+      <div class="lookup-title">🔍 Quick Lookup - Auto-generate from wallet</div>
+      <div class="lookup-row">
+        <input type="text" id="lookupWallet" placeholder="Enter wallet address (0x...)">
+        <button class="btn-lookup" onclick="lookupWallet()">Generate from API</button>
+      </div>
+      <div class="lookup-status" id="lookupStatus"></div>
+    </div>
+
     <div class="main-grid">
       <div class="form-section">
         <div class="form-title">Card Details</div>
@@ -481,6 +542,94 @@
     // Auto-update on input
     document.querySelectorAll('input, select').forEach(el => {
       el.addEventListener('input', generateCard);
+    });
+    
+    // Lookup wallet from API
+    async function lookupWallet() {
+      const wallet = document.getElementById('lookupWallet').value.trim();
+      const status = document.getElementById('lookupStatus');
+      
+      if (!wallet || !wallet.match(/^0x[a-fA-F0-9]{40}$/)) {
+        status.textContent = '❌ Please enter a valid wallet address (0x...)';
+        status.className = 'lookup-status error';
+        return;
+      }
+      
+      status.textContent = '🔍 Looking up wallet...';
+      status.className = 'lookup-status';
+      
+      try {
+        const res = await fetch('https://bounty.owockibot.xyz/bounties');
+        const bounties = await res.json();
+        
+        // Find bounties for this wallet
+        const walletLower = wallet.toLowerCase();
+        const myBounties = bounties.filter(b => 
+          b.claimedBy && b.claimedBy.toLowerCase() === walletLower
+        );
+        
+        if (myBounties.length === 0) {
+          status.textContent = '❌ No bounties found for this wallet';
+          status.className = 'lookup-status error';
+          return;
+        }
+        
+        // Calculate stats
+        let totalEarned = 0;
+        let completedCount = 0;
+        const allTags = new Set();
+        
+        myBounties.forEach(b => {
+          if (b.status === 'completed') {
+            totalEarned += parseFloat(b.reward || 0) / 1e6;
+            completedCount++;
+          }
+          (b.tags || []).forEach(t => allTags.add(t));
+        });
+        
+        // Calculate reputation (based on completion rate and earnings)
+        const completionRate = myBounties.length > 0 ? (completedCount / myBounties.length) : 0;
+        const reputation = Math.min(100, Math.round(50 + (completionRate * 30) + Math.min(totalEarned / 5, 20)));
+        
+        // Get top skills from tags
+        const skills = Array.from(allTags).slice(0, 5).join(', ');
+        
+        // Determine agent type based on tags
+        let agentType = 'AI Agent';
+        if (allTags.has('coding') || allTags.has('frontend') || allTags.has('backend')) {
+          agentType = 'Developer';
+        } else if (allTags.has('design') || allTags.has('creative')) {
+          agentType = 'Creator';
+        }
+        
+        // Generate agent name from wallet
+        const agentName = `AGENT-${wallet.slice(2, 6).toUpperCase()}`;
+        
+        // Fill the form
+        document.getElementById('agentName').value = agentName;
+        document.getElementById('wallet').value = wallet;
+        document.getElementById('earned').value = Math.round(totalEarned);
+        document.getElementById('bounties').value = completedCount;
+        document.getElementById('reputation').value = reputation;
+        document.getElementById('agentType').value = agentType;
+        document.getElementById('skills').value = skills;
+        document.getElementById('portfolioUrl').value = `https://bounty.owockibot.xyz`;
+        
+        // Generate the card
+        generateCard();
+        
+        status.textContent = `✅ Found ${myBounties.length} bounties! Card generated.`;
+        status.className = 'lookup-status success';
+        
+      } catch (err) {
+        status.textContent = '❌ Failed to fetch data: ' + err.message;
+        status.className = 'lookup-status error';
+      }
+    }
+    
+    // Allow Enter key in lookup
+    document.getElementById('lookupWallet').addEventListener('keypress', e => {
+      if (e.key === 'Enter') lookupWallet();
     });
     
     // Initial generate
