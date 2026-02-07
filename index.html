@@ -729,11 +729,15 @@
       const skills = Array.from(document.querySelectorAll('#cardSkills .skill-tag')).map(s => s.textContent);
       const portfolioUrl = document.getElementById('portfolioUrl').value || 'https://bounty.owockibot.xyz';
       
-      // Generate QR as data URL
+      // Generate QR as data URL using canvas
       let qrDataUrl = '';
       try {
-        qrDataUrl = await QRCode.toDataURL(portfolioUrl, { width: 80, margin: 0 });
-      } catch (e) {}
+        const qrCanvas = document.createElement('canvas');
+        await QRCode.toCanvas(qrCanvas, portfolioUrl, { width: 80, margin: 0 });
+        qrDataUrl = qrCanvas.toDataURL('image/png');
+      } catch (e) {
+        console.log('QR generation failed:', e);
+      }
       
       const themeColors = {
         cyber: { bg1: '#0d1117', bg2: '#161b22', accent: '#00f0ff', glow: '#00f0ff', accent2: '#a855f7' },
